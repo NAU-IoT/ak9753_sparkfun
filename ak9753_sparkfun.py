@@ -51,10 +51,29 @@ class AK9753():
 		
 	
 	def setStandbyMode(self):
-		self.write_emode(0)
+		self.write_emode(0b000)
 	
 	def setSingleShotMode(self):
-		self.write_emode(2)
+		self.write_emode(0b010)
+		
+	def setEEPROMAccessMode(self):
+		#TODO: implement this
+		print("EEPROM Access Mode not yet implemented")
+	
+	def setContinuousMode0(self):
+		self.write_emode(0b100)
+		
+	def setContinuousMode1(self):
+		self.write_emode(0b101)
+	
+	def setContinuousMode2(self):
+		self.write_emode(0b110)
+	
+	def setContinuousMode3(self):
+		self.write_emode(0b111)
+	
+	
+	
 	
 	
 	def write_emode(self, emode_val):
@@ -127,7 +146,7 @@ def main():
 	hps = AK9753(i2c_bus, i2c_address = 0x64, powerPin = 11)
 	hps.setPower(True)
 	
-	hps.setSingleShotMode()
+	hps.setContinuousMode0()
 	
 	
 	
