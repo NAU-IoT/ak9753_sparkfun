@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 
-
-
 from smbus import SMBus
 import RPi.GPIO as GPIO
+
+from enum import Enum
 import time
 import random
 
@@ -11,75 +11,98 @@ import random
 HPS_ADDR = 0x64
 HPS_PWR_PIN = 11 #physical pin
 
-
-def write_register(i2c_bus, i2c_address, register, value, verify = True):
-	#writes any write-enabled register on the AK9753
+class AK9753():
 	
-	write_result = i2c_bus.write_byte_data(i2c_address, register, value)
+	def __init__(self, i2c_bus, i2c_address, 
+				 powerPin = None, intPin = None):
+		self.i2c_bus = i2c_bus
+		self.i2c_address = i2c_address
+		self.powerPin = powerPin
+		self.intPin = intPin
 	
-	if verify:
-		readback = read_register(i2c_bus, i2c_address, register)
-		return readback
-	else:
-		return None
-
-
-
-def read_register(i2c_bus, i2c_address, register):
-	#reads any register from the AK9753
+	def setStandbyMode(self):
+		self.write_emode(0)
 	
-	#dummy write: sets register address to read from
-	i2c_bus.write_byte(i2c_address, register)
+	def setSingleShotMode(self):
+		self.write_emode(2)
 	
-	#now do the read
-	read_result = i2c_bus.read_byte(i2c_address)
-	return read_result
+	
+	def write_emode(self, emode_val):
+		#todo: make this less stupid, maybe store the EEPMODE/EFC values
+		ECNTL1 = self.read_register(0x1c)
+		mask = 0b11111000 + emode_val
+		ECNTL1 = ECNTL1 & mask
+		readback = self.write_register(0x1c, ECNTL1)
+		
+		if readback == ECNTL1:
+			print(f'Mode switch OK, EMODE now {emode_val}\n')
+		else:
+			print('Mode switch failed\n')
+		
+		
+
 		
 
 
-def HPS_set_power(powerPin, powerState):
-	GPIO.setmode(GPIO.BOARD)
-	GPIO.setup(powerPin, GPIO.OUT)
-	
-	# if we are bringing power on (and was off previously)
-	# then we need to make sure to wait for the AK9753 to 
-	# finish its power-on cycle before trying to do anything with it
-	needToWait = (powerState and not(GPIO.input(powerPin))) 
-	
-	# turn the power on	
-	GPIO.output(powerPin, powerState)
-	
-	# wait if necessary
-	if needToWait:
-		time.sleep(.05) 
+	def write_register(self, register, value, verify = True):
+		#writes any write-enabled register on the AK9753
+		
+		write_result = self.i2c_bus.write_byte_data(self.i2c_address, register, value)
+		
+		if verify:
+			readback = self.read_register(register)
+			return readback
+		else:
+			return None
+
+
+
+	def read_register(self, register):
+		#reads any register from the AK9753
+		
+		#dummy write: sets register address to read from
+		self.i2c_bus.write_byte(self.i2c_address, register)
+		
+		#now do the read
+		read_result = self.i2c_bus.read_byte(self.i2c_address)
+		return read_result
+		
+
+
+	def HPS_set_power(self, powerState):
+		if self.powerPin is None:
+			return #TODO: this should throw an exception?
+			
+		GPIO.setmode(GPIO.BOARD)
+		GPIO.setup(powerPin, GPIO.OUT)
+		
+		# if we are bringing power on (and was off previously)
+		# then we need to make sure to wait for the AK9753 to 
+		# finish its power-on cycle before trying to do anything with it
+		needToWait = (powerState and not(GPIO.input(self.powerPin))) 
+		
+		# turn the power on	
+		GPIO.output(self.powerPin, powerState)
+		
+		# wait if necessary
+		if needToWait:
+			time.sleep(.05) 
 		
 	
 
 
 
 def main():
-	i2c = SMBus(1) #object representing our I2C bus
-	HPS_set_power(HPS_PWR_PIN, False)
-	time.sleep(1)
-	HPS_set_power(HPS_PWR_PIN, True)
+	#this is just for testing/demonstration purposes
+	
+	
+	i2c_bus = SMBus(1) #object representing our I2C bus
+	hps = AK9753(i2c_bus, HPS_ADDR)
+	
+	hps.setSingleShotMode()
 	
 	
 	
-	read_result = read_register(i2c_bus = i2c,
-								i2c_address = HPS_ADDR,
-								register = 0x1b)
-								
-	print('EINTEN = ',read_result, f'({bin(read_result)})')                                                                 
-	print('Attempting to write to EINTEN...')
-	val = random.randint(0,63)
-	print(val+192)
-	write_register(i2c, HPS_ADDR, 0x1b, val)
-	
-	
-	read_result = read_register(i2c_bus = i2c,
-								i2c_address = HPS_ADDR,
-								register = 0x1b)							
-	print('EINTEN = ',read_result, f'({bin(read_result)})')
 	
 	
 
