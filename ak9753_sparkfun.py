@@ -59,6 +59,30 @@ class AK9753():
 		self.performSoftReset()
 		self.setDefaultMode()
 		self.setInterruptSource()
+	
+	
+	def getAllMeasurements(self):
+		#TODO: refactor to use address auto-increment
+		#TODO: get the temperature information
+		INTST_val = self.read_register(self.Registers.INTST)
+		ST1_val = self.read_register(self.Registers.ST1)
+		IRValues = [None,
+					self.getIRValue(1),
+					self.getIRValue(2),
+					self.getIRValue(3),
+					self.getIRValue(4)]
+		ST2_val = self.read_register(self.Registers.ST2)
+		
+		return IRValues
+		
+	
+	def getIRValue(self, IRnum):
+		#TODO: refactor to use address auto increment
+		lowByteAddress = 0x4 + 2*IRnum
+		highByteAddress = lowByteAddress + 1
+		lowByte = self.read_register(lowByteAddress)
+		highByte = self.read_register(highByteAddress)
+		return (highByte * 256) + lowByte
 		
 		
 		
@@ -98,7 +122,6 @@ class AK9753():
 	
 	def isDataReady(self):
 		ST1_val = self.read_register(self.Registers.ST1)
-		print(ST1_val)
 		DRDY = bool(ST1_val & 1) #get bit 0
 		return DRDY
 	
@@ -159,7 +182,7 @@ class AK9753():
 		# turn the power on	
 		GPIO.output(self.powerPin, powerState)
 		
-		# wait if necessary
+		# wait if necessary  
 		if needToWait:
 			time.sleep(.05) 
 		
@@ -177,10 +200,29 @@ def main():
 	
 	hps.examplePowerOn()
 	
-	while True:
-		print(hps.readIntPin())
-		time.sleep(1)	
+	#while True:
+	#	print(hps.readIntPin())
+	#	time.sleep(1)	
+	#	if not hps.readIntPin():
+	#		break
 	
+	#int has gone low, see if data is ready
+	for count in range(1,100):
+		while True:
+			dataReady = hps.isDataReady()
+			if dataReady:
+				print("data is ready")
+				break
+			else:
+				print("no data yet")
+			time.sleep(1)
+		
+		print(hps.getAllMeasurements())
+	
+	
+		
+		
+		
 	
 	
 	
@@ -188,6 +230,7 @@ def main():
 
 
 if __name__ == "__main__":
+	
 	main()
 	GPIO.cleanup()
 	
