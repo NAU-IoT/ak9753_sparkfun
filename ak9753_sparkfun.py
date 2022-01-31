@@ -48,6 +48,30 @@ class AK9753():
 		self.i2c_address = i2c_address
 		self.powerPin = powerPin
 		self.intPin = intPin
+		if intPin:
+			GPIO.setmode(GPIO.BOARD)
+			GPIO.setup(intPin, GPIO.IN)
+		
+	def readIntPin(self):
+		return GPIO.input(self.intPin)
+	
+	def examplePowerOn(self):
+		self.performSoftReset()
+		self.setDefaultMode()
+		self.setInterruptSource()
+		
+		
+		
+	def performSoftReset(self):
+		self.write_register(0x1d, 0x01, verify = False)
+	
+	def setDefaultMode(self):
+		self.write_register(0x1c, 0x0c, verify = False)
+	
+	def setInterruptSource(self, source = None):
+		if source == None:
+			self.write_register(0x1b, 0x01, verify = False)
+	
 		
 	
 	def setStandbyMode(self):
@@ -72,6 +96,11 @@ class AK9753():
 	def setContinuousMode3(self):
 		self.write_emode(0b111)
 	
+	def isDataReady(self):
+		ST1_val = self.read_register(self.Registers.ST1)
+		print(ST1_val)
+		DRDY = bool(ST1_val & 1) #get bit 0
+		return DRDY
 	
 	
 	
@@ -143,10 +172,14 @@ def main():
 	
 	
 	i2c_bus = SMBus(1) #object representing our I2C bus
-	hps = AK9753(i2c_bus, i2c_address = 0x64, powerPin = 11)
+	hps = AK9753(i2c_bus, i2c_address = 0x64, powerPin = 11, intPin = 7)
 	hps.setPower(True)
 	
-	hps.setContinuousMode0()
+	hps.examplePowerOn()
+	
+	while True:
+		print(hps.readIntPin())
+		time.sleep(1)	
 	
 	
 	
