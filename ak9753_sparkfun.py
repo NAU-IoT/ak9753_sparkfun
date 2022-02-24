@@ -379,15 +379,11 @@ def demo():
     NX_THRESHOLD = 30
     INITIAL_PEOPLE = 2
 
-    #this is just for testing/demonstration purposes
-
-
-    #plt.rcdefaults()
-
-    #figure = plt.figure()
 
 
     #i2c_bus = SMBus(1) #object representing our I2C bus
+                        # uncomment and change to SMBus(0) for very old Pis
+
     hps = AK9753(i2c_address = 0x64, powerPin = 11, intPin = 7)
     hps.setPower(True)
 
