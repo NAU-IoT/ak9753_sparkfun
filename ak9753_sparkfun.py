@@ -93,7 +93,8 @@ class AK9753():
             raise AttributeError('No interrupt pin defined for this AK9753.')
         return GPIO.input(self.intPin)
 
-    def examplePowerOn(self):
+
+    def powerOn(self):
         """Performs the example power-on procedure found in the AK9753 datasheet.
         Returns nothing."""
         self.performSoftReset()
@@ -158,8 +159,9 @@ class AK9753():
         return temp
 
     def IRBytesToValue(self, lowByte, highByte):
-        """Converts the two-byte IR measurement from a channel into a usable signed number.  Returns 
-        the actual signed value indicated by the register bytes."""
+        """Converts the two-byte IR measurement from a channel into a usable signed number.  Returns
+        the actual signed value indicated by the register bytes. You should not need to call this
+        externally."""
         val = (highByte * 256) + lowByte
         if val > 32767:
             val = ~val #flip all bits
@@ -167,13 +169,33 @@ class AK9753():
             val = (val + 1)*-1
         return val
 
-    def getIRValue(self, IRnum):
-        """Gets the IR value from one specific channel.  Generally better to use the
-        getAllMeasurements() function."""
+    def getIRValue(self, IRnum, terminate = True):
+        """Returns the IR value from one specific channel.  Generally better to use the
+        getAllMeasurements() function. 
+
+        Parameters:
+            IRNum: channel to read (1, 2, 3, or 4)
+            terminate: whether to read the ST2 register after getting the IR value.
+                       This tells the AK9753 that we're done reading and it's okay
+                       to start collecting more data.
+
+
+        """
+
+        # don't try to read things other than IR values
+        if type(IRnum) is not int:
+            raise ValueError(f"IR channel must be an integer (got {IRnum})")
+        if IRnum < 1 or IRnum > 4:
+            raise ValueError(f"IR channel can be 1, 2, 3, 4 (got {IRnum})")
+
         lowByteAddress = 0x4 + 2*IRnum
         highByteAddress = lowByteAddress + 1
         lowByte = self.read_register(lowByteAddress)
         highByte = self.read_register(highByteAddress)
+
+        # tell the AK9753 we're done reading, unless terminate = False was passed in
+        if terminate:
+            self.read_register(self.ST2)
 
         val = IRBytesToValue(lowByte = lowByte, highByte = highByte)
 
@@ -191,7 +213,6 @@ class AK9753():
     def setInterruptSource(self, source = None):
         if source == None:
             self.write_register(0x1b, 0x01, verify = False)
-
 
 
     def setStandbyMode(self):
@@ -229,7 +250,14 @@ class AK9753():
         return DRDY
 
     def setFilterCutoffFrequency(self, frequency):
-        """Sets the EFC filter cutoff frequency.  See datasheet pg 39."""
+        """
+        Sets the EFC filter cutoff frequency. This will be the measurement frequency in
+        Continuous Mode 0.  Continuous Modes 1-3 wait a number of measurement times
+        between each measurement.  See datasheet pg 39.
+
+        Allowed values: 0.3, 0.6, 1.1, 2.2, 4.4, 8.8 (Hz)
+
+        """
 
         allowedFrequencies = [0.3, 0.6, 1.1, 2.2, 4.4, 8.8]
 
@@ -296,9 +324,19 @@ class AK9753():
 
 
 
-    def read_register(self, register = None):
-        """Reads an arbitrary register from the AK9753. If no register address is specified, 
-        reads from the current autoincrement register.  Returns register value."""
+    def read_register(self, register = None, terminate = True):
+        """Reads an arbitrary register from the AK9753. If no register address is specified,
+        reads from the current autoincrement register.  Returns register value.
+
+        Parameter:
+            terminate: When True, read from ST2 register after reading the specified
+                       register.  When the specified register is a data output register,
+                       ST2 must be read in order for the AK9753 to continue producing
+                       data.  Set this to False if you will be reading other registers
+                       immediately and need the measurement data to remain static. """
+
+        if type(register) not in [None, int]:
+            raise TypeError(f"Register address must be an integer (got {register})")
 
         if register is not None:
             #dummy write: sets register address to read from
@@ -306,6 +344,8 @@ class AK9753():
 
         #now do the read
         read_result = self.i2c_bus.read_byte(self.i2c_address)
+
+        # allow termination just in case we're reading from a data output register
         return read_result
 
 
