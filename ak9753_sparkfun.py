@@ -352,6 +352,7 @@ class AK9753():
 
     def setPower(self, powerState):
         """Turns power on or off to the AK9753."""
+
         if self.powerPin is None:
             raise AttributeError('No AK9753 power pin specified; cannot set power state.')
 
@@ -370,48 +371,6 @@ class AK9753():
         if needToWait:
             time.sleep(.05)
 
-
-
-
-def updatePlot(figure, data):
-
-    # plot for demonstration purposes
-
-    ax1 = figure.add_subplot(3,1,1)
-    ax2 = figure.add_subplot(3,1,2)
-    ax3 = figure.add_subplot(3,1,3)
-
-    ax1.cla()
-
-    diffs = {}
-    for n in range(1,5):
-        diffs[n] = [0]
-
-    for step in range(1, len(data['t'])):
-        for ch in range(1,5):
-            d = data[ch][step] - data[ch][step-1]
-            diffs[ch].append(d)
-
-
-    for ch in range(1,5):
-        ax1.plot(data['t'], data[ch], label=f'Ch{ch} val')
-
-    for ch in range(1,5):
-        ax2.plot(data['t'], diffs[ch], label=f'Ch{ch} dt')
-
-    d24 = [0]
-    for step in range(1, len(data['t'])):
-        d24.append(diffs[2][step] - diffs[4][step])
-
-    ax3.plot(data['t'], d24, label = 'd2dt - d4dt')
-
-
-    ax1.legend()
-    ax2.legend()
-    ax3.legend()
-
-
-log = {}
 
 def demo():
 
