@@ -477,8 +477,6 @@ def demo():
         t = (now - startTime).total_seconds()
 
 
-    #updatePlot(figure, log)
-    #plt.show()
 
 
 def main():
