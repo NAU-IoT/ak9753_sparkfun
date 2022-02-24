@@ -1,9 +1,11 @@
-
 #! /usr/bin/env python3
 
+"""
+Library for interfacing to the Sparkfun breakout board for the AK9753
+four-channel PIR sensor.
 
-# See datasheet: https://cdn.sparkfun.com/assets/6/7/9/8/e/AK9753_DS.pdf
-
+See datasheet: https://cdn.sparkfun.com/assets/6/7/9/8/e/AK9753_DS.pdf
+"""
 
 from smbus import SMBus
 import RPi.GPIO as GPIO
@@ -21,9 +23,15 @@ import random
 
 
 class AK9753():
-    """Provides methods and constants for easily interfacing with the AK9753."""
+    """
+    Class representing the AK9753. Generally all interfacing should be 
+    done through the class."""
 
     class Registers():
+        """
+        Defines the address of user-accessible registers on the AK9753.
+        Do not change these values.
+        """
         WIA1 = 0x0
         WIA2 = 0x1
         INFO1 = 0x2
@@ -57,7 +65,10 @@ class AK9753():
 
     def __init__(self, i2c_bus = 1, i2c_address = 0x64,
                  powerPin = None, intPin = None):
-        """Initializes the sensor object.
+        """
+        Initializes the sensor object. All parameters are optional; generally the default settings
+        will work unless you need to hard-reset the AK9753 or you need hardware interrupts.
+
         Parameters:
             i2c_bus: Index of the Pi's I2C bus. This will always be 1 except for very old Pis.
             i2c_address: the I2C slave address of the AK9753.  The factory default is 0x64.
@@ -73,7 +84,6 @@ class AK9753():
         self.intPin = intPin
 
         if intPin:
-            GPIO.setmode(GPIO.BOARD)
             GPIO.setup(intPin, GPIO.IN)
 
     def readIntPin(self):
