@@ -195,7 +195,7 @@ class AK9753():
 
         # tell the AK9753 we're done reading, unless terminate = False was passed in
         if terminate:
-            self.read_register(self.ST2)
+            self.read_register(self.Registers.ST2)
 
         val = IRBytesToValue(lowByte = lowByte, highByte = highByte)
 
@@ -346,6 +346,10 @@ class AK9753():
         read_result = self.i2c_bus.read_byte(self.i2c_address)
 
         # allow termination just in case we're reading from a data output register
+        if terminate:
+            self.read_register(self.Registers.ST2, terminate = False)
+            #don't terminate the dummy read, it'll infinite loop
+
         return read_result
 
 
